@@ -96,9 +96,9 @@ function transformMarketCapData(market, cg_item) {
     }
   }
 
-  if (cg_item.events) {
+ /* if (cg_item.events) {
     markt.events = cg_item.events;
-  }
+  } */
 
   return markt;
 }
@@ -112,19 +112,13 @@ function handleMCResponse(response) {
    * returns matching chaingear item or false
    */
   function matchItemToCG(item) {
-
-    var ret = _.find(CG.chaingear, function (cg_item) {
+    return  _.find(CG.chaingear, function (cg_item) {
       if (!cg_item.aliases) return false;
       if (!cg_item.token) return false;
-      // match marketcap name with CG marketcap alias
       return (cg_item.aliases.coinmarketcap == item.name)
-          // match marketcap symbol with:
-          //               # commented out 1. CG marketcap symbol alias;
-          // 2. CG symbol
-        && //((item.symbol == cg_item.aliases.coinmarketcap.symbol) ||
-        (item.symbol == cg_item.token.token_symbol)// )
+        &&
+        (item.symbol == cg_item.token.token_symbol)
     });
-    return ret;
   }
 
   if (!response['timestamp']) {
@@ -163,8 +157,8 @@ function handleMCResponse(response) {
           _type: 'market'
         }
       });
-
       var markt = transformMarketCapData(market, cg_item);
+      if (markt.sym_sys.slice(0, 3)=="BCY") console.log(markt);
       markt.timestamp = timestamp;
       bulk.push(markt);
     }
@@ -172,7 +166,11 @@ function handleMCResponse(response) {
   logger.info("pushing " + bulk.length / 2 + " records to elasticsearch");
   /*logger.debug("last item: ");
    logger.info(bulk.pop());*/
-   es.bulk({body: bulk});
+  var fs = require('fs');
+  //fs.writeFile('bulk.json', JSON.stringify(bulk, null, 2), function(err, ret){
+  //  console.warn("get out");
+  //});
+  es.bulk({body: bulk});
 }
 
 

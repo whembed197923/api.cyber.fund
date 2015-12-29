@@ -5,6 +5,34 @@ var moment = require('moment');
 var CG = require("./lib/chaingear-fetcher");
 var utils = require("./lib/utils");
 var logger = require("log4js").getLogger("marketCap fetcher");
+var memwatch = require('memwatch');
+
+
+
+
+var hd;
+memwatch.on('leak', function(info) {
+  console.log(memleak);
+  console.error(info);
+  if (!hd) {
+    hd = new memwatch.HeapDiff();
+  } else {
+    var diff = hd.end();
+    console.error(util.inspect(diff, true, null));
+    hd = null;
+  }
+});
+
+memwatch.on('leak', function(info) {
+  console.error(info);
+  var file = '/home/angelo/myapp-' + process.pid + '-' + Date.now() + '.heapsnapshot';
+  heapdump.writeSnapshot(file, function(err){
+    if (err) console.error(err);
+    else console.error('Wrote snapshot: ' + file);
+  });
+});
+
+
 
 var es = new esLib.Client({
   host: 'http://' + process.env.ES_USERNAME + ':' + process.env.ES_PASSWORD + '@es.index.cyber.fund',
@@ -15,7 +43,7 @@ var sourceUrlMC = "http://coinmarketcap.northpole.ro/api/v5/all.json";
 var fetchIntervalMC = 5 * 60 * 1000;
 
 var index_old = "market-cap-data";
-var index_v = "marktcap-v3";
+var index_v = "marktcap-v4";
 var alias_read = "marketcap-read";
 var alias_write = "marketcap-write";
 
@@ -158,7 +186,6 @@ function handleMCResponse(response) {
         }
       });
       var markt = transformMarketCapData(market, cg_item);
-      if (markt.sym_sys.slice(0, 3)=="BCY") console.log(markt);
       markt.timestamp = timestamp;
       bulk.push(markt);
     }
@@ -173,10 +200,12 @@ function handleMCResponse(response) {
   es.bulk({body: bulk});
 }
 
-
+// recreate index
 function recreate() {
   es.indices.create({index: index_v});
 }
+
+// put index map
 function putmap() {
   var mapping = {
     index: index_v,
